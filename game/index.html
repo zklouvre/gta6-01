@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NEON TIDE — an open-world crime game in Vespera</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #05060a; font-family: 'Courier New', monospace; color: #e8ecff; }
+  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
+  #status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .hud { position: fixed; z-index: 5; pointer-events: none; text-shadow: 0 0 8px rgba(0,229,255,.6); }
+  #topleft { top: 14px; left: 14px; }
+  #stars { font-size: 26px; letter-spacing: 4px; color: #ffd24a; }
+  #stars .off { color: rgba(255,255,255,.18); }
+  #bars { margin-top: 6px; width: 220px; }
+  .bar { height: 10px; background: rgba(255,255,255,.12); margin-bottom: 4px; border: 1px solid rgba(255,255,255,.25); }
+  .bar > div { height: 100%; }
+  #health-fill { background: #7cff00; width: 100%; }
+  #armor-fill { background: #00e5ff; width: 0%; }
+  #cashline { font-size: 15px; margin-top: 6px; color: #7cff00; }
+  #rankline { font-size: 13px; color: #ff2d78; }
+  #topright { top: 14px; right: 14px; text-align: right; }
+  #clock { font-size: 22px; color: #ffd9a0; }
+  #weather { font-size: 12px; color: #8fb8ff; }
+  #radio { font-size: 12px; color: #b967ff; margin-top: 4px; }
+  #mission { top: 14px; left: 50%; transform: translateX(-50%); text-align: center; font-size: 14px; color: #ffea00; max-width: 560px; }
+  #timer { top: 44px; left: 50%; transform: translateX(-50%); font-size: 18px; color: #ff4040; }
+  #bottomleft { bottom: 14px; left: 14px; }
+  #minimap { border: 2px solid rgba(0,229,255,.5); border-radius: 4px; background: rgba(5,8,16,.9); box-shadow: 0 0 18px rgba(0,229,255,.35); }
+  #bottomright { bottom: 14px; right: 14px; text-align: right; font-size: 14px; }
+  #weapon { color: #ffd24a; }
+  #speed { font-size: 26px; color: #fff; }
+  #hint { bottom: 14px; left: 50%; transform: translateX(-50%); font-size: 11px; color: rgba(232,236,255,.55); }
+  #banner { top: 22%; left: 50%; transform: translateX(-50%); font-size: 24px; color: #ffea00; text-align: center; text-shadow: 0 0 18px rgba(255,234,0,.8); display: none; }
+  #talk { bottom: 120px; left: 50%; transform: translateX(-50%); width: 640px; max-width: 90vw; background: rgba(5,8,16,.92); border: 1px solid #ff2d78; padding: 14px 18px; font-size: 15px; line-height: 1.5; display: none; box-shadow: 0 0 24px rgba(255,45,120,.4); }
+  #talk .who { color: #ff2d78; font-weight: bold; }
+  .overlay { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; flex-direction: column; background: radial-gradient(ellipse at center, rgba(10,12,30,.88), rgba(2,3,6,.97)); }
+  .overlay h1 { font-size: 64px; margin: 0; letter-spacing: 8px; color: #ff2d78; text-shadow: 0 0 24px #ff2d78, 0 0 60px #ff2d78; }
+  .overlay h2 { font-size: 18px; letter-spacing: 6px; color: #00e5ff; text-shadow: 0 0 16px #00e5ff; margin: 6px 0 18px; }
+  .overlay p { max-width: 620px; text-align: center; line-height: 1.6; color: #c8d0ff; }
+  .btn { pointer-events: auto; cursor: pointer; background: transparent; border: 2px solid #00e5ff; color: #00e5ff; font-family: inherit; font-size: 16px; padding: 10px 26px; margin: 6px; letter-spacing: 2px; }
+  .btn:hover { background: #00e5ff; color: #05060a; box-shadow: 0 0 18px #00e5ff; }
+  .btn.pink { border-color: #ff2d78; color: #ff2d78; }
+  .btn.pink:hover { background: #ff2d78; color: #05060a; box-shadow: 0 0 18px #ff2d78; }
+  .leadcard { display: inline-block; border: 2px solid #333; padding: 12px 18px; margin: 6px; cursor: pointer; pointer-events: auto; text-align: left; width: 250px; }
+  .leadcard.sel { border-color: #ff2d78; box-shadow: 0 0 16px rgba(255,45,120,.5); }
+  .leadcard h3 { margin: 0 0 6px; font-size: 20px; }
+  .leadcard p { font-size: 12px; margin: 0; text-align: left; }
+  .controls { font-size: 12px; color: #8a93c8; line-height: 1.8; text-align: center; margin-top: 14px; }
+  #wheel { position: fixed; z-index: 9; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 300px; height: 300px; display: none; pointer-events: none; }
+  #garage { display: none; }
+  #garage .panel, #pause .panel { background: rgba(5,8,16,.96); border: 1px solid #ffea00; padding: 24px 30px; max-width: 560px; }
+  #garage h2, #pause h2 { color: #ffea00; letter-spacing: 4px; margin-top: 0; }
+  .upg { display: flex; justify-content: space-between; align-items: center; margin: 8px 0; font-size: 14px; }
+  .upg button { pointer-events: auto; }
+  .small { font-size: 12px; color: #8a93c8; }
+  #gameover { display: none; }
+  #gameover h1 { color: #ff4040; text-shadow: 0 0 24px #ff4040; }
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="NEON TIDE: open-world crime game in the rain-slicked neon canal city of Vespera"></canvas>
+<p id="status" role="status" aria-live="polite"></p>
+
+<div class="hud" id="topleft">
+  <div id="stars"></div>
+  <div id="bars">
+    <div class="bar"><div id="health-fill"></div></div>
+    <div class="bar"><div id="armor-fill"></div></div>
+  </div>
+  <div id="cashline">$0</div>
+  <div id="rankline">Street Rat</div>
+</div>
+<div class="hud" id="topright">
+  <div id="clock">02:14</div>
+  <div id="weather">RAIN — HEAVY</div>
+  <div id="radio">VESPERA FM</div>
+</div>
+<div class="hud" id="mission"></div>
+<div class="hud" id="timer"></div>
+<div class="hud" id="bottomleft"><canvas id="minimap" width="180" height="180"></canvas></div>
+<div class="hud" id="bottomright">
+  <div id="weapon">P-9 Pistol</div>
+  <div id="ammo">∞</div>
+  <div id="speed"></div>
+</div>
+<div class="hud" id="hint">WASD move/drive · E enter/exit car · F steal · Mouse aim, Click shoot · 1-4 weapons · Q wheel · R radio · T mission · Esc pause</div>
+<div class="hud" id="banner"></div>
+<div class="hud" id="talk"></div>
+
+<div class="overlay" id="menu">
+  <h1>NEON TIDE</h1>
+  <h2>VESPERA · 2:14 AM · RAIN</h2>
+  <p>Two leads. One city. A debt to the Drowned Court and ten jobs to pay it back.
+  Drive the canals, dodge the VPD, and take the tide for yourself.</p>
+  <div id="leads">
+    <div class="leadcard sel" data-lead="rue"><h3 style="color:#ff2d78">RUE</h3><p>Ex-courier. Fast on foot, hot-wires any car in seconds.</p></div>
+    <div class="leadcard" data-lead="marlowe"><h3 style="color:#00e5ff">MARLOWE</h3><p>Ex-dock enforcer. Tougher, hits twice as hard up close.</p></div>
+  </div>
+  <div>
+    <button class="btn pink" id="btn-new">NEW GAME</button>
+    <button class="btn" id="btn-continue">CONTINUE</button>
+  </div>
+  <div class="controls">WASD move / drive · SHIFT run · E enter &amp; exit car · F steal car · Mouse aim, Click shoot<br>
+  1–4 weapons · Q weapon wheel · R radio · M mute · T start mission · Esc pause · C switch lead at safehouse</div>
+  <p class="small">An original game. No Rockstar Games content. City, characters, story and music are invented.</p>
+</div>
+
+<div class="overlay" id="pause" style="display:none">
+  <div class="panel">
+    <h2>PAUSED</h2>
+    <p id="pause-stats"></p>
+    <p class="small">Crew (unlocked by missions): <span id="crew-list">none yet</span><br>
+    <span id="crew-active"></span></p>
+    <button class="btn" id="btn-resume">RESUME</button>
+    <button class="btn" id="btn-save">SAVE GAME</button>
+    <button class="btn pink" id="btn-quit">QUIT TO MENU</button>
+  </div>
+</div>
+
+<div class="overlay" id="garage" style="display:none">
+  <div class="panel">
+    <h2>VEX GARAGE</h2>
+    <p class="small">Spend cash on your ride. Upgrades apply to every car you drive.</p>
+    <div id="upgrades"></div>
+    <p id="garage-cash"></p>
+    <button class="btn" id="btn-garage-close">BACK TO THE STREETS</button>
+  </div>
+</div>
+
+<canvas id="wheel" width="300" height="300"></canvas>
+
+<div class="overlay" id="gameover" style="display:none">
+  <h1 id="go-title">WASTED</h1>
+  <p id="go-text"></p>
+  <button class="btn" id="btn-retry">BACK ON THE STREETS</button>
+</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
